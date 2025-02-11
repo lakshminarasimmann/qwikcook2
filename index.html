@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QwikCook - Indian Recipe App</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Get Started Section -->
+    <section id="get-started" class="active">
+        <div class="hero">
+            <nav>
+                <div class="logo">
+                    <span class="chef-hat">👨‍🍳</span>
+                    <h1>QwikCook</h1>
+                </div>
+            </nav>
+            <div class="hero-content">
+                <h1>Discover the Magic of <span class="highlight">Indian Cuisine</span></h1>
+                <p>Join our community of passionate home chefs and explore authentic Indian recipes</p>
+                <button onclick="startApp()" class="primary-btn">
+                    Get Started <span class="arrow">→</span>
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Loading Screen -->
+    <section id="loading">
+        <div class="loader"></div>
+        <p class="loading-text"></p>
+    </section>
+
+    <!-- Dashboard Section -->
+    <section id="dashboard">
+        <header>
+            <div class="search-container">
+                <input 
+                    type="text" 
+                    id="search-input" 
+                    placeholder="Search for recipes..." 
+                    oninput="searchRecipes()"
+                >
+                <span class="search-icon">🔍</span>
+            </div>
+            <div class="location-container">
+                <input 
+                    type="text" 
+                    id="location-input" 
+                    placeholder="Search by location..." 
+                    oninput="searchRecipes()"
+                >
+                <span class="location-icon">📍</span>
+            </div>
+            <div class="filter-buttons">
+                <button class="filter-btn active" data-filter="all" onclick="filterRecipes('all')">All</button>
+                <button class="filter-btn" data-filter="veg" onclick="filterRecipes('veg')">Veg</button>
+                <button class="filter-btn" data-filter="non-veg" onclick="filterRecipes('non-veg')">Non-Veg</button>
+            </div>
+            <button onclick="showUploadModal()" class="upload-btn">
+                Upload Recipe ↑
+            </button>
+        </header>
+
+        <main id="recipes-container"></main>
+
+        <!-- Upload Modal -->
+        <div id="upload-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Upload New Recipe</h2>
+                    <span class="close" onclick="closeUploadModal()">&times;</span>
+                </div>
+                <form onsubmit="handleUpload(event)">
+                    <div class="form-group">
+                        <label>Recipe Name</label>
+                        <input type="text" name="title" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Image URL</label>
+                        <input type="url" name="image" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Prep Time</label>
+                            <input type="text" name="prepTime" placeholder="e.g., 15 mins" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Cook Time</label>
+                            <input type="text" name="cookTime" placeholder="e.g., 30 mins" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Total Time</label>
+                        <input type="text" name="totalTime" placeholder="e.g., 45 mins" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Location/Origin</label>
+                        <input type="text" name="location" placeholder="e.g., South India" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Type</label>
+                        <div class="radio-group">
+                            <label>
+                                <input type="radio" name="isVeg" value="true" checked>
+                                Vegetarian
+                            </label>
+                            <label>
+                                <input type="radio" name="isVeg" value="false">
+                                Non-Vegetarian
+                            </label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" onclick="closeUploadModal()" class="secondary-btn">Cancel</button>
+                        <button type="submit" class="primary-btn">Upload Recipe</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Recipe Details Modal -->
+        <div id="recipe-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <span class="close" onclick="closeRecipeModal()">&times;</span>
+                </div>
+                <div id="recipe-details"></div>
+            </div>
+        </div>
+    </section>
+
+    <script src="db.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
