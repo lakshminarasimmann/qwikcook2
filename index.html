@@ -1,369 +1,137 @@
-// Loading quotes with more variety
-const quotes = [
-    "The secret ingredient is always love...",
-    "In the kitchen, we create memories that last a lifetime...",
-    "Food is the ingredient that binds us together...",
-    "Cooking is like love - it should be entered into with abandon or not at all...",
-    "Life is uncertain. Eat dessert first...",
-    "Good food is good mood...",
-    "Cooking with love provides food for the soul...",
-    "A recipe has no soul. You, as the cook, must bring soul to the recipe...",
-    "People who love to eat are always the best people...",
-    "Cooking is an art, but all art requires knowing something about the techniques and materials..."
-];
-
-// Global variables
-let recipes = [];
-let currentCategory = 'all';
-
-// Initialize app
-async function initializeApp() {
-    try {
-        recipes = await dbOperations.getAllRecipes();
-        displayRecipes(recipes);
-        init3DModel();
-    } catch (error) {
-        console.error('Error initializing app:', error);
-        showError('Failed to load recipes. Please refresh the page.');
-    }
-}
-
-// Get random quote
-function getRandomQuote() {
-    return quotes[Math.floor(Math.random() * quotes.length)];
-}
-
-// Navigation Functions
-function startApp() {
-    const getStartedSection = document.getElementById('get-started');
-    const loadingSection = document.getElementById('loading');
-    
-    // Hide get started section with fade out
-    getStartedSection.style.opacity = '0';
-    setTimeout(() => {
-        getStartedSection.classList.remove('active');
-        
-        // Show loading section
-        loadingSection.classList.add('active');
-        loadingSection.style.opacity = '1';
-        
-        // Start quote rotation with random quotes
-        const loadingText = document.querySelector('.loading-text');
-        loadingText.textContent = getRandomQuote();
-        
-        const quoteRotation = setInterval(() => {
-            loadingText.style.opacity = '0';
-            setTimeout(() => {
-                loadingText.textContent = getRandomQuote();
-                loadingText.style.opacity = '1';
-            }, 500);
-        }, 2000);
-        
-        // After loading duration, transition to dashboard
-        setTimeout(() => {
-            clearInterval(quoteRotation);
-            loadingSection.style.opacity = '0';
-            
-            setTimeout(() => {
-                loadingSection.classList.remove('active');
-                document.getElementById('dashboard').classList.add('active');
-                initializeApp();
-            }, 500);
-        }, 6000);
-    }, 500);
-}
-
-// Enhanced Search Function with Location and Category
-let searchTimeout;
-function searchRecipes() {
-    clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(async () => {
-        const searchTerm = document.getElementById('search-input').value;
-        const locationTerm = document.getElementById('location-input').value;
-        const activeFilter = document.querySelector('.filter-btn.active').dataset.filter;
-        
-        try {
-            const results = await dbOperations.searchRecipes(searchTerm, activeFilter, locationTerm, currentCategory);
-            displayRecipes(results);
-        } catch (error) {
-            console.error('Error searching recipes:', error);
-            showError('Failed to search recipes. Please try again.');
-        }
-    }, 300);
-}
-
-// Filter by Category
-function filterCategory(category) {
-    const buttons = document.querySelectorAll('.category-btn');
-    buttons.forEach(btn => btn.classList.remove('active'));
-    event.target.classList.add('active');
-    currentCategory = category;
-    searchRecipes();
-}
-
-// Enhanced Recipe Display
-function displayRecipes(recipesToShow = recipes) {
-    const container = document.getElementById('recipes-container');
-    container.innerHTML = '';
-    
-    recipesToShow.forEach(recipe => {
-        const card = document.createElement('div');
-        card.className = `recipe-card ${recipe.isVeg ? 'veg' : 'non-veg'}`;
-        card.onclick = () => showRecipeModal(recipe);
-        
-        card.innerHTML = `
-            <div class="recipe-type-badge ${recipe.isVeg ? 'veg' : 'non-veg'}">
-                ${recipe.isVeg ? '🥬 Veg' : '🍖 Non-Veg'}
-            </div>
-            <div class="category-badge">${recipe.category || 'Uncategorized'}</div>
-            <img src="${recipe.image}" alt="${recipe.title}" class="recipe-image">
-            <div class="recipe-content">
-                <h3>${recipe.title}</h3>
-                <div class="recipe-info">
-                    <span>⭐ ${recipe.rating.toFixed(1)}</span>
-                    <span>⏰ ${recipe.totalTime || 'Time not specified'}</span>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QwikCook - Indian Recipe App</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Get Started Section -->
+    <section id="get-started" class="active">
+        <div class="hero">
+            <nav>
+                <div class="logo">
+                    <span class="chef-hat">👨‍🍳</span>
+                    <h1>QwikCook</h1>
                 </div>
-                <div class="recipe-details">
-                    <div class="recipe-timing">
-                        <span>🔪 Prep: ${recipe.prepTime || 'Not specified'}</span>
-                        <span>👨‍🍳 Cook: ${recipe.cookTime || 'Not specified'}</span>
+            </nav>
+            <div class="hero-content">
+                <h1>Discover the Magic of <span class="highlight">Indian Cuisine</span></h1>
+                <p>Join our community of passionate home chefs and explore authentic Indian recipes</p>
+                <button onclick="startApp()" class="primary-btn">
+                    Get Started <span class="arrow">→</span>
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Loading Screen -->
+    <section id="loading">
+        <div class="loader"></div>
+        <p class="loading-text"></p>
+    </section>
+
+    <!-- Dashboard Section -->
+    <section id="dashboard">
+        <header>
+            <div class="search-container">
+                <input 
+                    type="text" 
+                    id="search-input" 
+                    placeholder="Search for recipes..." 
+                    oninput="searchRecipes()"
+                >
+                <span class="search-icon">🔍</span>
+            </div>
+            <div class="location-container">
+                <input 
+                    type="text" 
+                    id="location-input" 
+                    placeholder="Search by location..." 
+                    oninput="searchRecipes()"
+                >
+                <span class="location-icon">📍</span>
+            </div>
+            <div class="filter-buttons">
+                <button class="filter-btn active" data-filter="all" onclick="filterRecipes('all')">All</button>
+                <button class="filter-btn" data-filter="veg" onclick="filterRecipes('veg')">Veg</button>
+                <button class="filter-btn" data-filter="non-veg" onclick="filterRecipes('non-veg')">Non-Veg</button>
+            </div>
+            <button onclick="showUploadModal()" class="upload-btn">
+                Upload Recipe ↑
+            </button>
+        </header>
+
+        <main id="recipes-container"></main>
+
+        <!-- Upload Modal -->
+        <div id="upload-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Upload New Recipe</h2>
+                    <span class="close" onclick="closeUploadModal()">&times;</span>
+                </div>
+                <form onsubmit="handleUpload(event)">
+                    <div class="form-group">
+                        <label>Recipe Name</label>
+                        <input type="text" name="title" required>
                     </div>
-                    <div class="recipe-location">📍 ${recipe.location || 'Location not specified'}</div>
+                    <div class="form-group">
+                        <label>Image URL</label>
+                        <input type="url" name="image" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Prep Time</label>
+                            <input type="text" name="prepTime" placeholder="e.g., 15 mins" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Cook Time</label>
+                            <input type="text" name="cookTime" placeholder="e.g., 30 mins" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Total Time</label>
+                        <input type="text" name="totalTime" placeholder="e.g., 45 mins" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Location/Origin</label>
+                        <input type="text" name="location" placeholder="e.g., South India" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Type</label>
+                        <div class="radio-group">
+                            <label>
+                                <input type="radio" name="isVeg" value="true" checked>
+                                Vegetarian
+                            </label>
+                            <label>
+                                <input type="radio" name="isVeg" value="false">
+                                Non-Vegetarian
+                            </label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" onclick="closeUploadModal()" class="secondary-btn">Cancel</button>
+                        <button type="submit" class="primary-btn">Upload Recipe</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Recipe Details Modal -->
+        <div id="recipe-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <span class="close" onclick="closeRecipeModal()">&times;</span>
                 </div>
-                <div class="review-count">${recipe.reviews?.length || 0} reviews</div>
-            </div>
-        `;
-        
-        container.appendChild(card);
-    });
-}
-
-// Enhanced Recipe Modal with YouTube Video
-function showRecipeModal(recipe) {
-    const modal = document.getElementById('recipe-modal');
-    const details = document.getElementById('recipe-details');
-    
-    const ingredientsList = recipe.ingredients ? recipe.ingredients.map(ing => 
-        `<li class="ingredient-item">• ${ing}</li>`
-    ).join('') : '<li class="ingredient-item">No ingredients listed</li>';
-    
-    const instructionsList = recipe.instructions ? recipe.instructions.map((step, index) => 
-        `<li class="instruction-item">${index + 1}. ${step}</li>`
-    ).join('') : '<li class="instruction-item">No instructions available</li>';
-    
-    const reviewsHtml = recipe.reviews?.map(review => `
-        <div class="review">
-            <div class="review-header">
-                <span class="review-user">${review.user}</span>
-                <span class="review-rating">⭐ ${review.rating}</span>
-            </div>
-            <p class="review-text">${review.text}</p>
-        </div>
-    `).join('') || '<p>No reviews yet</p>';
-
-    const youtubeEmbed = recipe.youtubeUrl ? `
-        <div class="youtube-video">
-            <h3>Video Tutorial</h3>
-            <iframe 
-                width="100%" 
-                height="315" 
-                src="https://www.youtube.com/embed/${recipe.youtubeUrl.split('v=')[1]}" 
-                frameborder="0" 
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                allowfullscreen>
-            </iframe>
-        </div>
-    ` : '';
-    
-    details.innerHTML = `
-        <img src="${recipe.image}" alt="${recipe.title}" class="modal-image">
-        <h2>${recipe.title}</h2>
-        <div class="category-tag">${recipe.category || 'Uncategorized'}</div>
-        
-        <div class="recipe-meta">
-            <div class="recipe-timing-details">
-                <h3>⏰ Timing</h3>
-                <p>🔪 Prep Time: ${recipe.prepTime || 'Not specified'}</p>
-                <p>👨‍🍳 Cook Time: ${recipe.cookTime || 'Not specified'}</p>
-                <p>⌛ Total Time: ${recipe.totalTime || 'Not specified'}</p>
-            </div>
-            <div class="recipe-basic-info">
-                <p>📍 ${recipe.location || 'Location not specified'}</p>
-                <p class="${recipe.isVeg ? 'veg-text' : 'non-veg-text'}">
-                    ${recipe.isVeg ? '🥬 Vegetarian' : '🍖 Non-Vegetarian'}
-                </p>
-                <p>⭐ ${recipe.rating.toFixed(1)} Rating</p>
+                <div id="recipe-details"></div>
             </div>
         </div>
+    </section>
 
-        ${youtubeEmbed}
-
-        <div class="recipe-ingredients">
-            <h3>📝 Ingredients</h3>
-            <ul class="ingredients-list">
-                ${ingredientsList}
-            </ul>
-        </div>
-
-        <div class="recipe-instructions">
-            <h3>👩‍🍳 Instructions</h3>
-            <ol class="instructions-list">
-                ${instructionsList}
-            </ol>
-        </div>
-
-        <div class="reviews-section">
-            <h3>Reviews</h3>
-            ${reviewsHtml}
-            <form onsubmit="handleReviewSubmit(event, ${recipe.id})" class="review-form">
-                <input type="text" name="user" placeholder="Your Name" required>
-                <textarea name="text" placeholder="Your Review" required></textarea>
-                <div class="rating-input">
-                    <label>Rating:</label>
-                    <select name="rating" required>
-                        <option value="5">⭐⭐⭐⭐⭐ (5)</option>
-                        <option value="4">⭐⭐⭐⭐ (4)</option>
-                        <option value="3">⭐⭐⭐ (3)</option>
-                        <option value="2">⭐⭐ (2)</option>
-                        <option value="1">⭐ (1)</option>
-                    </select>
-                </div>
-                <button type="submit" class="primary-btn">Submit Review</button>
-            </form>
-        </div>
-    `;
-    
-    modal.style.display = 'block';
-}
-
-// 3D Model Initialization
-function init3DModel() {
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    const renderer = new THREE.WebGLRenderer({ alpha: true });
-    
-    const container = document.getElementById('food-model');
-    if (!container) return;
-    
-    renderer.setSize(300, 300);
-    container.appendChild(renderer.domElement);
-
-    // Create a simple 3D object (placeholder for food model)
-    const geometry = new THREE.TorusGeometry(5, 2, 16, 100);
-    const material = new THREE.MeshBasicMaterial({ color: 0xff6b6b, wireframe: true });
-    const torus = new THREE.Mesh(geometry, material);
-    scene.add(torus);
-
-    camera.position.z = 20;
-
-    function animate() {
-        requestAnimationFrame(animate);
-        torus.rotation.x += 0.01;
-        torus.rotation.y += 0.01;
-        renderer.render(scene, camera);
-    }
-
-    animate();
-}
-
-// Filter Function
-async function filterRecipes(type) {
-    const buttons = document.querySelectorAll('.filter-btn');
-    buttons.forEach(btn => btn.classList.remove('active'));
-    event.target.classList.add('active');
-
-    const searchTerm = document.getElementById('search-input').value;
-    try {
-        const results = await dbOperations.searchRecipes(searchTerm, type, '', currentCategory);
-        displayRecipes(results);
-    } catch (error) {
-        console.error('Error filtering recipes:', error);
-        showError('Failed to filter recipes. Please try again.');
-    }
-}
-
-// Modal Functions
-function showUploadModal() {
-    document.getElementById('upload-modal').style.display = 'block';
-}
-
-function closeUploadModal() {
-    document.getElementById('upload-modal').style.display = 'none';
-}
-
-function closeRecipeModal() {
-    document.getElementById('recipe-modal').style.display = 'none';
-}
-
-// Enhanced Upload Function
-async function handleUpload(event) {
-    event.preventDefault();
-    const form = event.target;
-    const formData = new FormData(form);
-    
-    const newRecipe = {
-        title: formData.get('title'),
-        image: formData.get('image'),
-        youtubeUrl: formData.get('youtubeUrl'),
-        category: formData.get('category'),
-        rating: 0,
-        prepTime: formData.get('prepTime'),
-        cookTime: formData.get('cookTime'),
-        totalTime: formData.get('totalTime'),
-        isVeg: formData.get('isVeg') === 'true',
-        location: formData.get('location'),
-        ingredients: [],
-        instructions: []
-    };
-    
-    try {
-        await dbOperations.addRecipe(newRecipe);
-        recipes = await dbOperations.getAllRecipes();
-        displayRecipes();
-        closeUploadModal();
-        form.reset();
-        showSuccess('Recipe uploaded successfully!');
-    } catch (error) {
-        console.error('Error uploading recipe:', error);
-        showError('Failed to upload recipe. Please try again.');
-    }
-}
-
-// Handle Review Submission
-async function handleReviewSubmit(event, recipeId) {
-    event.preventDefault();
-    const form = event.target;
-    const review = {
-        user: form.user.value,
-        text: form.text.value,
-        rating: Number(form.rating.value)
-    };
-    
-    try {
-        const updatedRecipe = await dbOperations.addReview(recipeId, review);
-        recipes = await dbOperations.getAllRecipes();
-        showRecipeModal(updatedRecipe);
-        showSuccess('Review added successfully!');
-        form.reset();
-    } catch (error) {
-        console.error('Error adding review:', error);
-        showError('Failed to add review. Please try again.');
-    }
-}
-
-// Utility Functions
-function showError(message) {
-    const errorDiv = document.createElement('div');
-    errorDiv.className = 'error-message';
-    errorDiv.textContent = message;
-    document.body.appendChild(errorDiv);
-    setTimeout(() => errorDiv.remove(), 3000);
-}
-
-function showSuccess(message) {
-    const successDiv = document.createElement('div');
-    successDiv.className = 'success-message';
-    successDiv.textContent = message;
-    document.body.appendChild(successDiv);
-    setTimeout(() => successDiv.remove(), 3000);
-}
+    <script src="db.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
