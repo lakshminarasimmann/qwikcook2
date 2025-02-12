@@ -1,6 +1,6 @@
 // Database configuration
 const DB_NAME = 'QwikCookDB';
-const DB_VERSION = 4; // Increased version for new fields
+const DB_VERSION = 3; // Increased version for ingredients
 const STORE_NAME = 'recipes';
 
 // Initialize database
@@ -19,19 +19,12 @@ function initDB() {
                 store.createIndex('location', 'location', { unique: false });
                 store.createIndex('isVeg', 'isVeg', { unique: false });
                 store.createIndex('rating', 'rating', { unique: false });
-                store.createIndex('category', 'category', { unique: false }); // New index for category
                 
                 // Add sample data
                 store.transaction.oncomplete = () => {
                     const recipeStore = db.transaction(STORE_NAME, 'readwrite').objectStore(STORE_NAME);
                     initialRecipes.forEach(recipe => recipeStore.add(recipe));
                 };
-            } else {
-                // Add new fields to existing store if upgrading
-                const store = event.target.result.transaction.objectStore(STORE_NAME);
-                if (!store.indexNames.contains('category')) {
-                    store.createIndex('category', 'category', { unique: false });
-                }
             }
         };
     });
@@ -48,8 +41,6 @@ const initialRecipes = [
         totalTime: "30 mins",
         isVeg: true,
         location: "South India",
-        category: "Main Course",
-        youtubeUrl: "https://www.youtube.com/watch?v=CCab5oh0ZOc",
         ingredients: [
             "2 cups dosa batter (fermented rice and urad dal)",
             "3 medium potatoes, boiled and mashed",
@@ -95,8 +86,6 @@ const initialRecipes = [
         totalTime: "1 hour 15 mins",
         isVeg: false,
         location: "North India",
-        category: "Main Course",
-        youtubeUrl: "https://www.youtube.com/watch?v=a03U45jFxOI",
         ingredients: [
             "500g chicken, cut into pieces",
             "2 cups tomato puree",
@@ -179,16 +168,15 @@ const dbOperations = {
                 const totalRating = recipe.reviews.reduce((sum, r) => sum + r.rating, 0);
                 recipe.rating = totalRating / recipe.reviews.length;
 
-                const updateRequest = store.put(recipe);
-                updateRequest.onsuccess = () => resolve(recipe);
-                updateRequest.onerror = () => reject(updateRequest.error);
+                store.put(recipe);
+                resolve(recipe);
             };
             request.onerror = () => reject(request.error);
         });
     },
 
     // Search recipes with enhanced filtering
-    searchRecipes: async (query, filter = 'all', location = '', category = 'all') => {
+    searchRecipes: async (query, filter = 'all', location = '') => {
         const db = await initDB();
         return new Promise((resolve, reject) => {
             const transaction = db.transaction(STORE_NAME, 'readonly');
@@ -203,10 +191,8 @@ const dbOperations = {
                                         !recipe.isVeg;
                     const matchesLocation = !location || 
                                          recipe.location.toLowerCase().includes(location.toLowerCase());
-                    const matchesCategory = category === 'all' ? true :
-                                          recipe.category === category;
                     
-                    return matchesQuery && matchesFilter && matchesLocation && matchesCategory;
+                    return matchesQuery && matchesFilter && matchesLocation;
                 });
                 resolve(results);
             };
